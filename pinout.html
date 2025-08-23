@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VectorStrum – Pin-to-Pin Wiring Map</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#0f1732; --ink:#f7f9ff; --muted:#b7c1e2;
+    --accent:#7c5cff; --accent2:#00e0b8; --accent3:#ff7aa2; --accent4:#ffd166;
+    --spi:#ff9f1a; --i2c:#2ecc71; --key:#b86bff; --wl:#00d1ff; --i2s:#4dabff;
+    --pwr5:#ffd54d; --pwr33:#ffe27a; --gnd:#94a1b2; --usb:#63b3ff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    background: radial-gradient(1400px 900px at 15% 10%, #121a36 0%, #0b1020 55%, #090d19 100%);
+    color:var(--ink);
+  }
+  header{padding:24px 24px 10px}
+  h1{
+    margin:0 0 6px; font-size: clamp(22px,3.6vw,34px); font-weight:800; letter-spacing:.2px;
+    background:linear-gradient(90deg,#fff,#cfe2ff); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .sub{color:var(--muted); font-size:13px}
+  .wrap{
+    position:relative; margin:18px 24px 28px; border-radius:18px; padding:18px;
+    background:linear-gradient(180deg, #0e1533, #0b1128); border:1px solid #1c2a55;
+    box-shadow:0 12px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
+    min-height:680px; overflow:hidden;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns: 1.15fr 1.15fr 1.15fr .9fr;
+    grid-auto-rows: minmax(220px,auto);
+    gap:18px;
+  }
+  .block{
+    position:relative; background:linear-gradient(180deg,#111a3a,#0f1732);
+    border:1px solid #26356d; border-radius:18px;
+    box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);
+    padding:12px 12px 14px;
+  }
+  .title{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-weight:800}
+  .tag{font-size:12px;font-weight:800;padding:4px 8px;border-radius:999px;border:1px solid transparent}
+  .tag.key{background:rgba(184,107,255,.16);border-color:rgba(184,107,255,.32);color:#eddcff}
+  .tag.i2c{background:rgba(46,204,113,.14);border-color:rgba(46,204,113,.35);color:#bdf6d3}
+  .tag.spi{background:rgba(255,159,26,.15);border-color:rgba(255,159,26,.35);color:#ffd29b}
+  .tag.wl{background:rgba(0,209,255,.14);border-color:rgba(0,209,255,.35);color:#bff4ff}
+  .tag.usb{background:rgba(99,179,255,.14);border-color:rgba(99,179,255,.35);color:#d9ecff}
+
+  .pins{display:grid;grid-template-columns:repeat(2,minmax(120px,1fr));gap:8px}
+  .pin{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    background:#0c1534;border:1px dashed #2a3a79;border-radius:12px;padding:6px 8px;
+    font-size:13px;color:#d7e2ff;position:relative;
+  }
+  .pin .badge{
+    font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;border:1px solid transparent;white-space:nowrap
+  }
+  .b-key{background:rgba(184,107,255,.18);border-color:rgba(184,107,255,.4);color:#efdfff}
+  .b-i2c{background:rgba(46,204,113,.18);border-color:rgba(46,204,113,.45);color:#c9f7dc}
+  .b-spi{background:rgba(255,159,26,.18);border-color:rgba(255,159,26,.45);color:#ffe0b6}
+  .b-ctl{background:rgba(255,84,112,.18);border-color:rgba(255,84,112,.45);color:#ffd0d8}
+  .b-33{background:rgba(255,226,122,.18);border-color:rgba(255,226,122,.5);color:#fff1b6}
+  .b-5v{ background:rgba(255,213,77,.18); border-color:rgba(255,213,77,.5); color:#fff0b0 }
+  .b-gnd{background:rgba(148,161,178,.2);border-color:rgba(148,161,178,.5);color:#f0f3f7}
+
+  .legend{
+    position:absolute; right:16px; bottom:16px; width:min(380px, 42vw);
+    background:linear-gradient(180deg,#10193a,#0e1532); border:1px solid #26356d; border-radius:16px;
+    padding:10px 12px; font-size:12px; color:#cdd7f3;
+  }
+  .legend h3{margin:0 0 6px; font-size:13px}
+  .lg-row{ display:flex; flex-wrap:wrap; gap:6px 12px }
+  .chip{ width:14px; height:6px; border-radius:4px; display:inline-block; margin-right:6px }
+  .c-key{background:var(--key)} .c-i2c{background:var(--i2c)} .c-spi{background:var(--spi)}
+  .c-wl{background:var(--wl)} .c-5v{background:var(--pwr5)} .c-33{background:var(--pwr33)}
+  .c-gnd{background:var(--gnd)} .c-usb{background:var(--usb)}
+
+  /* SVG wires */
+  svg.wires{ position:absolute; inset:0; pointer-events:none; }
+  .wire{ fill:none; stroke-width:2.6; opacity:.96; filter: drop-shadow(0 0 6px rgba(255,255,255,.08)); }
+  .wire.spi{ stroke: var(--spi); }
+  .wire.ctl{ stroke: #ff5470; }
+  .wire.i2c{ stroke: var(--i2c); }
+  .wire.key{ stroke: var(--key); }
+  .wire.pwr5{ stroke: var(--pwr5); }
+  .wire.pwr33{ stroke: var(--pwr33); }
+  .wire.gnd{ stroke: var(--gnd); }
+  .wire.wl{ stroke: var(--wl); stroke-dasharray: 8 6; }
+  .wire.usb{ stroke: var(--usb); stroke-dasharray: 10 6; }
+
+  .note{margin:8px 24px 24px; color:#cdd7f3; font-size:12px}
+  @media (max-width:1100px){
+    .grid{ grid-template-columns:1fr; }
+    .legend{ position:relative; right:auto; bottom:auto; width:100%; margin-top:12px }
+    .wrap{ min-height:1100px }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>VectorStrum – Pin-to-Pin Wiring Map</h1>
+  <div class="sub">Keypad Nano TX, IMU Nano TX, RF→USB Gateway → Python Sound Engine</div>
+</header>
+
+<div class="wrap">
+  <svg class="wires" id="wires">
+    <defs>
+      <marker id="arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+        <path d="M 0 0 L 10 4 L 0 8 z" fill="#fff" opacity="0.75"></path>
+      </marker>
+    </defs>
+  </svg>
+
+  <div class="grid">
+    <!-- 1. Keypad -->
+    <div class="block" id="blk-keypad">
+      <div class="title">4×3 Keypad <span class="tag key">KEYPAD</span></div>
+      <div class="pins">
+        <div class="pin" id="kp-R1"><span>R1</span><span class="badge b-key">ROW</span></div>
+        <div class="pin" id="kp-C1"><span>C1</span><span class="badge b-key">COL</span></div>
+        <div class="pin" id="kp-R2"><span>R2</span><span class="badge b-key">ROW</span></div>
+        <div class="pin" id="kp-C2"><span>C2</span><span class="badge b-key">COL</span></div>
+        <div class="pin" id="kp-R3"><span>R3</span><span class="badge b-key">ROW</span></div>
+        <div class="pin" id="kp-C3"><span>C3</span><span class="badge b-key">COL</span></div>
+        <div class="pin" id="kp-R4"><span>R4</span><span class="badge b-key">ROW</span></div>
+        <div class="pin" id="kp-NC"><span>(N/C)</span><span class="badge b-key">—</span></div>
+      </div>
+    </div>
+
+    <!-- 2. Nano #1 (Keypad TX) -->
+    <div class="block" id="blk-nano-k">
+      <div class="title">Arduino Nano #1 <span class="tag">Keypad TX</span></div>
+      <div class="pins">
+        <div class="pin" id="nk-D3"><span>D3</span><span class="badge b-key">ROW1</span></div>
+        <div class="pin" id="nk-D2"><span>D2</span><span class="badge b-key">COL1</span></div>
+        <div class="pin" id="nk-D4"><span>D4</span><span class="badge b-key">ROW2</span></div>
+        <div class="pin" id="nk-D9"><span>D9</span><span class="badge b-key">COL2</span></div>
+        <div class="pin" id="nk-D5"><span>D5</span><span class="badge b-key">ROW3</span></div>
+        <div class="pin" id="nk-A0"><span>A0</span><span class="badge b-key">COL3</span></div>
+        <div class="pin" id="nk-D6"><span>D6</span><span class="badge b-key">ROW4</span></div>
+
+        <div class="pin" id="nk-D8"><span>D8</span><span class="badge b-ctl">CE → RF</span></div>
+        <div class="pin" id="nk-D7"><span>D7</span><span class="badge b-ctl">CSN → RF</span></div>
+        <div class="pin" id="nk-D13"><span>D13</span><span class="badge b-spi">SCK</span></div>
+        <div class="pin" id="nk-D11"><span>D11</span><span class="badge b-spi">MOSI</span></div>
+        <div class="pin" id="nk-D12"><span>D12</span><span class="badge b-spi">MISO</span></div>
+        <div class="pin" id="nk-3V3"><span>3.3V</span><span class="badge b-33">→ RF</span></div>
+        <div class="pin" id="nk-GND"><span>GND</span><span class="badge b-gnd">→ RF</span></div>
+        <div class="pin" id="nk-D10"><span>D10</span><span class="badge b-ctl">SS keep HIGH</span></div>
+      </div>
+    </div>
+
+    <!-- 3. nRF24 (Keypad) -->
+    <div class="block" id="blk-nrf-k">
+      <div class="title">nRF24 (Keypad) <span class="tag spi">SPI</span> <span class="tag wl">KEY01</span></div>
+      <div class="pins">
+        <div class="pin" id="nrfk-CE"><span>CE</span><span class="badge b-ctl">CE</span></div>
+        <div class="pin" id="nrfk-CSN"><span>CSN</span><span class="badge b-ctl">CSN</span></div>
+        <div class="pin" id="nrfk-SCK"><span>SCK</span><span class="badge b-spi">SPI</span></div>
+        <div class="pin" id="nrfk-MOSI"><span>MOSI</span><span class="badge b-spi">SPI</span></div>
+        <div class="pin" id="nrfk-MISO"><span>MISO</span><span class="badge b-spi">SPI</span></div>
+        <div class="pin" id="nrfk-3V3"><span>3.3V</span><span class="badge b-33">PWR</span></div>
+        <div class="pin" id="nrfk-GND"><span>GND</span><span class="badge b-gnd">GND</span></div>
+        <div class="pin" id="nrfk-ANT"><span>Ant.</span><span class="badge b-ctl">RF</span></div>
+      </div>
+    </div>
+
+    <!-- 4. IMU (GY-521) -->
+    <div class="block" id="blk-mpu">
+      <div class="title">MPU-6050 (GY-521) <span class="tag i2c">I²C</span></div>
+      <div class="pins">
+        <div class="pin" id="mpu-VCC"><span>VCC</span><span class="badge b-5v">5V</span></div>
+        <div class="pin" id="mpu-GND"><span>GND</span><span class="badge b-gnd">GND</span></div>
+        <div class="pin" id="mpu-SDA"><span>SDA</span><span class="badge b-i2c">I²C</span></div>
+        <div class="pin" id="mpu-SCL"><span>SCL</span><span class="badge b-i2c">I²C</span></div>
+      </div>
+    </div>
+
+    <!-- 5. Nano #2 (IMU TX) -->
+    <div class="block" id="blk-nano-i">
+      <div class="title">Arduino Nano #2 <span class="tag">IMU TX</span></div>
+      <div class="pins">
+        <div class="pin" id="ni-5V"><span>5V</span><span class="badge b-5v">→ IMU VCC</span></div>
+        <div class="pin" id="ni-GND"><span>GND</span><span class="badge b-gnd">→ IMU GND</span></div>
+        <div class="pin" id="ni-A4"><span>A4</span><span class="badge b-i2c">SDA</span></div>
+        <div class="pin" id="ni-A5"><span>A5</span><span class="badge b-i2c">SCL</span></div>
+
+        <div class="pin" id="ni-D8"><span>D8</span><span class="badge b-ctl">CE → RF</span></div>
+        <div class="pin" id="ni-D7"><span>D7</span><span class="badge b-ctl">CSN → RF</span></div>
+        <div class="pin" id="ni-D13"><span>D13</span><span class="badge b-spi">SCK</span></div>
+        <div class="pin" id="ni-D11"><span>D11</span><span class="badge b-spi">MOSI</span></div>
+        <div class="pin" id="ni-D12"><span>D12</span><span class="badge b-spi">MISO</span></div>
+        <div class="pin" id="ni-3V3"><span>3.3V</span><span class="badge b-33">→ RF</span></div>
+        <div class="pin" id="ni-D10"><span>D10</span><span class="badge b-ctl">SS keep HIGH</span></div>
+      </div>
+    </div>
+
+    <!-- 6. nRF24 (IMU) -->
+    <div class="block" id="blk-nrf-i">
+      <div class="title">nRF24 (IMU) <span class="tag spi">SPI</span> <span class="tag wl">IMU01</span></div>
+      <div class="pins">
+        <div class="pin" id="nrfi-CE"><span>CE</span><span class="badge b-ctl">CE</span></div>
+        <div class="pin" id="nrfi-CSN"><span>CSN</span><span class="badge b-ctl">CSN</span></div>
+        <div class="pin" id="nrfi-SCK"><span>SCK</span><span class="badge b-spi">SPI</span></div>
+        <div class="pin" id="nrfi-MOSI"><span>MOSI</span><span class="badge b-spi">SPI</span></div>
+        <div class="pin" id="nrfi-MISO"><span>MISO</span><span class="badge b-spi">SPI</span></div>
+        <div class="pin" id="nrfi-3V3"><span>3.3V</span><span class="badge b-33">PWR</span></div>
+        <div class="pin" id="nrfi-GND"><span>GND</span><span class="badge b-gnd">GND</span></div>
+        <div class="pin" id="nrfi-ANT"><span>Ant.</span><span class="badge b-ctl">RF</span></div>
+      </div>
+    </div>
+
+    <!-- 7. RF Gateway (Receiver) -->
+    <div class="block" id="blk-gw">
+      <div class="title">RF → USB Gateway <span class="tag wl">RF RX</span> <span class="tag usb">USB</span></div>
+      <div class="pins">
+        <div class="pin" id="gw-CE"><span>CE</span><span class="badge b-ctl">CE</span></div>
+        <div class="pin" id="gw-CSN"><span>CSN</span><span class="badge b-ctl">CSN</span></div>
+        <div class="pin" id="gw-SCK"><span>SCK</span><span class="badge b-spi">SPI</span></div>
+        <div class="pin" id="gw-MOSI"><span>MOSI</span><span class="badge b-spi">SPI</span></div>
+        <div class="pin" id="gw-MISO"><span>MISO</span><span class="badge b-spi">SPI</span></div>
+        <div class="pin" id="gw-3V3"><span>3.3V</span><span class="badge b-33">PWR</span></div>
+        <div class="pin" id="gw-GND"><span>GND</span><span class="badge b-gnd">GND</span></div>
+        <div class="pin" id="gw-ANT"><span>Ant.</span><span class="badge b-ctl">RF</span></div>
+        <div class="pin" id="gw-USB"><span>USB</span><span class="badge b-ctl">To PC</span></div>
+      </div>
+    </div>
+
+    <!-- 8. PC / Python -->
+    <div class="block" id="blk-pc">
+      <div class="title">PC <span class="tag usb">Python Sound Engine</span></div>
+      <div style="color:#cfd8ff;font-size:13px;line-height:1.5">
+        • Receives raw 3-byte packets over USB<br/>
+        • Karplus–Strong 6-string synth (22.05 kHz)<br/>
+        • Controls: 1..0=chord, *=mute, #=sustain
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <h3>Legend</h3>
+    <div class="lg-row">
+      <span><i class="chip c-key"></i>Keypad rows/cols</span>
+      <span><i class="chip c-i2c"></i>I²C (SDA/SCL)</span>
+      <span><i class="chip c-spi"></i>SPI (SCK/MOSI/MISO)</span>
+      <span><i class="chip c-wl"></i>Wireless RF (pipes)</span>
+      <span><i class="chip c-5v"></i>5V</span>
+      <span><i class="chip c-33"></i>3.3V</span>
+      <span><i class="chip c-gnd"></i>GND</span>
+      <span><i class="chip c-usb"></i>USB</span>
+    </div>
+  </div>
+</div>
+
+<p class="note">Tip: Put a 10–47&nbsp;µF cap on each nRF24 between 3.3V and GND, keep SPI wires short, and route away from speakers.</p>
+
+<script>
+  // --- Helpers to draw curves between element centers on the SVG overlay ---
+  function centerOf(el, svg){
+    const r = el.getBoundingClientRect();
+    const s = svg.getBoundingClientRect();
+    return { x: r.left + r.width/2 - s.left, y: r.top + r.height/2 - s.top };
+  }
+  function drawCurve(svg, fromEl, toEl, cls, label){
+    const p1 = centerOf(fromEl, svg), p2 = centerOf(toEl, svg);
+    const dx = Math.abs(p2.x - p1.x);
+    const pull = Math.max(50, dx * 0.45);
+    const c1x = p1.x + (p2.x>p1.x ? pull : -pull), c1y = p1.y;
+    const c2x = p2.x - (p2.x>p1.x ? pull : -pull), c2y = p2.y;
+    const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+    path.setAttribute("d", `M ${p1.x} ${p1.y} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`);
+    path.setAttribute("class", `wire ${cls}`);
+    path.setAttribute("marker-end","url(#arrow)");
+    svg.appendChild(path);
+    if(label){
+      const tx=(p1.x+p2.x)/2, ty=(p1.y+p2.y)/2 - 8;
+      const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+      t.setAttribute("x",tx); t.setAttribute("y",ty); t.setAttribute("fill","#e7efff");
+      t.setAttribute("font-size","11"); t.setAttribute("text-anchor","middle");
+      t.textContent = label; svg.appendChild(t);
+    }
+  }
+  function drawAll(){
+    const svg = document.getElementById('wires');
+    svg.innerHTML = svg.innerHTML; // keep defs
+    const $ = id => document.getElementById(id);
+
+    // Keypad → Nano #1 (rows/cols)
+    drawCurve(svg,$('kp-R1'),$('nk-D3'),'key','ROW1');
+    drawCurve(svg,$('kp-R2'),$('nk-D4'),'key','ROW2');
+    drawCurve(svg,$('kp-R3'),$('nk-D5'),'key','ROW3');
+    drawCurve(svg,$('kp-R4'),$('nk-D6'),'key','ROW4');
+    drawCurve(svg,$('kp-C1'),$('nk-D2'),'key','COL1');
+    drawCurve(svg,$('kp-C2'),$('nk-D9'),'key','COL2');
+    drawCurve(svg,$('kp-C3'),$('nk-A0'),'key','COL3');
+
+    // Nano #1 ↔ nRF24 (keypad radio)
+    drawCurve(svg,$('nk-D8'), $('nrfk-CE'),  'ctl','CE');
+    drawCurve(svg,$('nk-D7'), $('nrfk-CSN'), 'ctl','CSN');
+    drawCurve(svg,$('nk-D13'),$('nrfk-SCK'), 'spi','SCK');
+    drawCurve(svg,$('nk-D11'),$('nrfk-MOSI'),'spi','MOSI');
+    drawCurve(svg,$('nk-D12'),$('nrfk-MISO'),'spi','MISO');
+    drawCurve(svg,$('nk-3V3'),$('nrfk-3V3'),'pwr33','3.3V');
+    drawCurve(svg,$('nk-GND'),$('nrfk-GND'),'gnd','GND');
+
+    // IMU → Nano #2 (I2C + power)
+    drawCurve(svg,$('ni-5V'), $('mpu-VCC'),'pwr5','5V');
+    drawCurve(svg,$('ni-GND'),$('mpu-GND'),'gnd','GND');
+    drawCurve(svg,$('ni-A4'), $('mpu-SDA'),'i2c','SDA');
+    drawCurve(svg,$('ni-A5'), $('mpu-SCL'),'i2c','SCL');
+
+    // Nano #2 ↔ nRF24 (IMU radio)
+    drawCurve(svg,$('ni-D8'), $('nrfi-CE'),  'ctl','CE');
+    drawCurve(svg,$('ni-D7'), $('nrfi-CSN'), 'ctl','CSN');
+    drawCurve(svg,$('ni-D13'),$('nrfi-SCK'), 'spi','SCK');
+    drawCurve(svg,$('ni-D11'),$('nrfi-MOSI'),'spi','MOSI');
+    drawCurve(svg,$('ni-D12'),$('nrfi-MISO'),'spi','MISO');
+    drawCurve(svg,$('ni-3V3'),$('nrfi-3V3'),'pwr33','3.3V');
+    drawCurve(svg,$('ni-GND'),$('nrfi-GND'),'gnd','GND');
+
+    // Wireless RF (dashed) from both TX radios to Gateway antenna
+    drawCurve(svg,$('nrfk-ANT'),$('gw-ANT'),'wl','KEY01 @ ch76 1Mbps');
+    drawCurve(svg,$('nrfi-ANT'),$('gw-ANT'),'wl','IMU01 @ ch76 1Mbps');
+
+    // Gateway MCU ↔ its nRF24 (SPI + power)
+    drawCurve(svg,$('gw-CE'), $('gw-ANT'),'ctl','CE');
+    drawCurve(svg,$('gw-CSN'),$('gw-ANT'),'ctl','CSN');
+    drawCurve(svg,$('gw-SCK'),$('gw-ANT'),'spi','SCK');
+    drawCurve(svg,$('gw-MOSI'),$('gw-ANT'),'spi','MOSI');
+    drawCurve(svg,$('gw-MISO'),$('gw-ANT'),'spi','MISO');
+    drawCurve(svg,$('gw-3V3'),$('gw-ANT'),'pwr33','3.3V');
+    drawCurve(svg,$('gw-GND'),$('gw-ANT'),'gnd','GND');
+
+    // USB to PC
+    drawCurve(svg,$('gw-USB'),$('blk-pc'),'usb','USB Serial (115200)');
+  }
+  let redrawTimer=null;
+  function scheduleDraw(){ clearTimeout(redrawTimer); redrawTimer=setTimeout(drawAll, 50); }
+  window.addEventListener('load', scheduleDraw);
+  window.addEventListener('resize', scheduleDraw);
+  // reflow watcher in case fonts cause late resize
+  setTimeout(scheduleDraw, 250);
+</script>
+</body>
+</html>
