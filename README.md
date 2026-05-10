@@ -1,232 +1,262 @@
-VectorStrum — Motion-Sensed Air Guitar
+<div align="center">
 
-VectorStrum is a wireless “air guitar” you can actually play.
-A keypad selects chords, an IMU detects your strums, and a sound engine turns motion into guitar audio.
+```
+ ██╗   ██╗███████╗ ██████╗████████╗ ██████╗ ██████╗ ███████╗████████╗██████╗ ██╗   ██╗███╗   ███╗
+ ██║   ██║██╔════╝██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██║   ██║████╗ ████║
+ ██║   ██║█████╗  ██║        ██║   ██║   ██║██████╔╝███████╗   ██║   ██████╔╝██║   ██║██╔████╔██║
+ ╚██╗ ██╔╝██╔══╝  ██║        ██║   ██║   ██║██╔══██╗╚════██║   ██║   ██╔══██╗██║   ██║██║╚██╔╝██║
+  ╚████╔╝ ███████╗╚██████╗   ██║   ╚██████╔╝██║  ██║███████║   ██║   ██║  ██║╚██████╔╝██║ ╚═╝ ██║
+   ╚═══╝  ╚══════╝ ╚═════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝
+```
 
-TX 1 (Keypad Nano): 4×3 keypad → nRF24L01
+**Play air guitar. For real.**
 
-TX 2 (IMU Nano): MPU-6050 motion (strum) → nRF24L01
+*Motion-sensed wireless air guitar powered by Arduino Nanos, nRF24L01 radios, MPU-6050 IMU, and Karplus–Strong string synthesis in Python.*
 
-Sound Engine:
+---
 
-Option A: Python on your PC (recommended) via a simple RF→USB Gateway
+![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)
+![Arduino](https://img.shields.io/badge/Arduino-C%2B%2B-teal?style=flat-square&logo=arduino)
+![Python](https://img.shields.io/badge/Python-3.8%2B-yellow?style=flat-square&logo=python)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)
 
-Option B: ESP32 + MAX98357A I²S amp (legacy firmware still included)
+</div>
 
-https://github.com/n00rtahsin/Vectorstrum
+---
 
-✨ Features
+## 🎸 What is Vectorstrum?
 
-Real-time plucked-string synthesis (Karplus–Strong, 6 strings)
+Vectorstrum is a hardware + software system that turns thin air into music. Strap on a keypad to select chords. Hold the IMU unit and *strum* — a real swing of your arm. A wireless radio link carries both signals to a sound engine that synthesizes six-string guitar audio using Karplus–Strong physical modelling, in real time.
 
-Chord palette on 4×3 keypad (1..0, *=mute, #=sustain)
+No guitar. No strings. Just motion, math, and radio waves.
 
-Robust radio link (nRF24): channel 76, 1 Mbps, AutoAck, retries
+> **"And Air Guitar with microcontrollers and Python"** — because sometimes the best instrument is the one you mime.
 
-IMU strum detection with velocity + collision-avoidant delayed send
+---
 
-2-second “recent chord” gate (prevents stray strums from old chords)
+## ✨ Features
 
-Verbose serial logs on all nodes for easy debugging
+| Feature | Detail |
+|---|---|
+| 🎵 **Physical string synthesis** | Karplus–Strong algorithm, 6 independent string voices |
+| 🎹 **Chord palette** | 10 chords on a 4×3 keypad (keys `1`–`0`) |
+| 📡 **Robust wireless link** | nRF24L01, channel 76, 1 Mbps, AutoAck + retries |
+| 🤸 **Strum detection** | MPU-6050 IMU with velocity scaling and direction sensing |
+| ⏱️ **Strum gate** | 2-second chord validity window prevents phantom strums |
+| 🔇 **Mute & Sustain** | `*` = hard mute, `#` = toggle sustain (longer decay) |
+| 🐛 **Debug-friendly** | Verbose serial logs on every node |
+| 🖥️ **Dual sound engine** | Option A: Python PC engine · Option B: ESP32 + I²S amp |
 
+---
 
+## 🗺️ System Architecture
 
-🧩 System Overview
-[4x3 Keypad] --(GPIO)--> [Nano #1] --(nRF24 pipe "KEY01")--> 
-                                                           \
-                                                            \ 
-                                                             >==[ RF Gateway ]==USB==> [Python Sound Engine]
-                                                            /
-[MPU-6050 IMU] --(I²C)--> [Nano #2] --(nRF24 pipe "IMU01")-/
+```
+┌──────────────────┐        nRF24L01        ┌────────────────────────────┐
+│  Arduino Nano #1 │  ──── pipe "KEY01" ──►  │                            │
+│  4×3 Keypad      │                          │   RF → USB Gateway         │
+└──────────────────┘                          │   (Any Arduino + nRF24)    │
+                                              │                            │
+┌──────────────────┐        nRF24L01         │                            │
+│  Arduino Nano #2 │  ──── pipe "IMU01" ──►  │                            │
+│  MPU-6050 IMU    │                          └────────────┬───────────────┘
+└──────────────────┘                                       │ USB Serial (115200)
+                                                           │
+                                               ┌───────────▼───────────────┐
+                                               │  Python Sound Engine      │
+                                               │  (Karplus–Strong × 6)     │
+                                               │  sounddevice + numpy       │
+                                               └───────────────────────────┘
+```
 
+**All radios share identical settings:**
 
-Radio settings (all radios identical):
+| Parameter | Value |
+|---|---|
+| Channel | 76 |
+| Data rate | 1 Mbps |
+| CRC | 16-bit |
+| AutoAck | ON |
+| Retries | 5 delays, 15 attempts |
+| Payload | Fixed 3 bytes |
 
-Address/Pipes: KEY01 (keypad) and IMU01 (IMU)
+**Packet format:**
 
-Channel: 76
+```
+Keypad TX  →  [ 'K' | keyChar | seq ]
+IMU TX     →  [ 'S' | velInt8 | seq ]    velInt8 ∈ [-100, 100]
+```
 
-Data rate: 1 Mbps
+The receiver drops duplicate `seq` values to prevent double-plucks.
 
-CRC: 16-bit
+---
 
-AutoAck: ON
+## 🛒 Bill of Materials
 
-Retries: (5,15)
+| Qty | Component | Notes |
+|---|---|---|
+| 2× | Arduino Nano (ATmega328P) | Old Bootloader variant if needed |
+| 2× | nRF24L01(+) radio modules | Add 10–47 µF electrolytic cap per module |
+| 1× | 4×3 Matrix Keypad | Standard membrane type |
+| 1× | MPU-6050 breakout (GY-521) | I²C IMU |
+| 1× | Arduino Nano/Uno/ESP32 | RF→USB Gateway only |
+| — | Breadboard, jumpers, USB cables | — |
+| *(Optional)* | ESP32 DevKit + MAX98357A | Legacy standalone sound engine |
+| *(Optional)* | Small speaker | For ESP32 I²S output |
 
-Payloads: fixed 3 bytes
+**Total cost estimate: ~$15–25 USD for the core build.**
 
-Keypad: {'K', keyChar, seq}
+---
 
-IMU: {'S', velInt8, seq}
+## 🔌 Wiring Guide
 
-🛒 Bill of Materials
+### Nano #1 — Keypad Transmitter
 
-2× Arduino Nano (ATmega328P)
+```
+Keypad rows  →  D3, D4, D5, D6
+Keypad cols  →  D2, D9, A0        ⚠️ Column 3 MUST be A0 — NOT D10
+nRF24 CE     →  D8
+nRF24 CSN    →  D7
+nRF24 SCK    →  D13
+nRF24 MOSI   →  D11
+nRF24 MISO   →  D12
+nRF24 VCC    →  3.3 V  (with 10–47 µF cap to GND)
+D10          →  OUTPUT, kept HIGH  (forces SPI master mode on AVR)
+```
 
-2× nRF24L01(+) radio modules (+ 10–47 µF electrolytic cap each)
+### Nano #2 — IMU (MPU-6050) Transmitter
 
-1× 4×3 matrix keypad
+```
+GY-521 VCC   →  5 V
+GY-521 GND   →  GND
+GY-521 SDA   →  A4
+GY-521 SCL   →  A5
+(XDA / XCL leave unconnected)
 
-1× MPU-6050 (GY-521)
+nRF24        →  same pins as Nano #1
+D10          →  OUTPUT, kept HIGH
+```
 
-Option A (Python): 1× Arduino (Nano/Uno/ESP32) + nRF24 for the RF Gateway
+### RF→USB Gateway
 
-Option B (ESP32): 1× ESP32 DevKit (CP2102) + MAX98357A I²S DAC/amp + speaker
+Same nRF24 wiring as above. Opens both `KEY01` and `IMU01` pipes in RX mode and forwards raw 3-byte packets over USB serial at 115200 baud.
 
-Breadboard, jumpers, micro-USB cables
+### *(Optional)* ESP32 + MAX98357A
 
-🔌 Wiring (exact pin maps)
-Nano #1 — Keypad Transmitter
+```
+nRF24  CE=D27, CSN=D14, SCK=D18, MOSI=D23, MISO=D19
+MAX98357A  BCLK=D26, LRCLK=D25, DIN=D22
+MAX98357A  VIN=5V, SD=D21 (keep LOW at boot to mute)
+```
 
-Keypad rows → D3, D4, D5, D6
+---
 
-Keypad cols → D2, D9, A0 (do NOT use D10)
+## ⚡ Quickstart
 
-nRF24 → CE D8, CSN D7, SCK D13, MOSI D11, MISO D12, VCC 3.3 V, GND
+### 1. Flash the Transmitters
 
-Keep D10 = OUTPUT + HIGH (forces SPI master on AVR)
+Install these Arduino libraries first (via Library Manager):
+- **RF24** by TMRh20
+- **Keypad** by Mark Stanley & Alexander Brevig
 
-Add 10–47 µF cap across radio 3.3 V–GND
+Then upload:
 
-Nano #2 — IMU (MPU-6050) Transmitter
+```
+chord.ino / strum.ino  →  Nano #1 (Keypad TX)
+soundengine.ino        →  Nano #2 (IMU TX)
+```
 
-GY-521 → VCC 5 V, GND, SDA A4, SCL A5 (XDA/XCL unconnected)
+Open Serial Monitor (115200). You should see heartbeat messages. Press a key → `key=...  ACK`. Shake the IMU → `SEND vel=...  ACK`.
 
-nRF24 → CE D8, CSN D7, SCK D13, MOSI D11, MISO D12, VCC 3.3 V, GND
+### 2. Flash the RF→USB Gateway
 
-D10 = OUTPUT + HIGH; 10–47 µF cap on radio
+Upload the gateway sketch (see [Gateway Sketch](#-rfusb-gateway-sketch)) to any spare Arduino or ESP32.
 
-RF→USB Gateway (for Python engine)
+Serial Monitor should print:
 
-Any Arduino (Nano/Uno/ESP32) + nRF24 wired like above
-
-Opens two RX pipes (KEY01 / IMU01) and forwards raw 3-byte packets to the PC over USB serial (115200)
-
-(Optional) ESP32 + MAX98357A (legacy)
-
-nRF24 CE=D27, CSN=D14, SCK D18, MOSI D23, MISO D19, 3.3 V
-
-MAX98357A: BCLK D26, LRCLK D25, DIN D22, VIN 5 V, GND, SD= D21 (mute LOW at boot)
-
-🧪 Quickstart (Python Sound Engine)
-
-Flash the transmitters (Arduino IDE):
-
-Install libraries: RF24, Keypad
-
-Open and upload:
-
-firmware/keypad_nano_tx/Keypad_Nano_TX.ino
-
-firmware/imu_nano_tx_delayed/IMU_Nano_TX_Delayed.ino
-
-Serial Monitors should show heartbeats. Press keypad → see key=… ACK. Shake IMU → SEND vel=… ACK.
-
-Flash the RF Gateway:
-
-Open firmware/rf_gateway/RF_Gateway.ino and upload to your gateway Arduino.
-
-Serial Monitor should say:
+```
 RF GATEWAY listening: pipe0=KEY01 pipe1=IMU01 ch76 1Mbps
+```
 
-Install Python deps:
+### 3. Install Python Dependencies
 
+```bash
 pip install sounddevice numpy pyserial
+```
 
+### 4. Run the Sound Engine
 
-Run engine:
+Edit `gyt.py` and set your gateway's serial port:
 
-Edit python/VectorStrum_engine.py: set COM_PORT to your gateway’s port (e.g., COM5).
+```python
+COM_PORT = "COM5"   # Windows: "COM5" | Linux/Mac: "/dev/ttyUSB0"
+```
 
-Start:
+Then run:
 
-python python/VectorStrum_engine.py
+```bash
+python gyt.py
+```
 
+You'll see `Audio stream running…`. Select a chord on the keypad, then strum the IMU — and hear it.
 
-You’ll see Audio stream running…. Press keypad (choose a chord) then strum IMU → sound!
+---
 
-🎛️ Controls
+## 🎛️ Controls Reference
 
-Keypad 1..0: set chord
+| Key | Action |
+|---|---|
+| `1` | C major |
+| `2` | D minor |
+| `3` | E minor |
+| `4` | F major |
+| `5` | G major |
+| `6` | A minor |
+| `7` | B minor |
+| `8` | C major (alt voicing) |
+| `9` | D major |
+| `0` | E major |
+| `*` | Hard mute (silence all strings) |
+| `#` | Toggle sustain (extended decay) |
 
-*: hard mute (Python prints MUTE ON)
+### Chord Voicings (low E → high E, fret numbers, `-1` = muted)
 
-#: toggle sustain (longer decay)
+```
+C  major  →  -1, 3, 2, 0, 1, 0
+D  minor  →  -1,-1, 0, 2, 3, 1
+E  minor  →   0, 2, 2, 0, 0, 0
+F  major  →   1, 3, 3, 2, 1, 1
+G  major  →   3, 2, 0, 0, 0, 3
+A  minor  →  -1, 0, 2, 2, 1, 0
+B  minor  →  -1, 2, 4, 4, 3, 2
+D  major  →  -1,-1, 0, 2, 3, 2
+E  major  →   0, 2, 2, 1, 0, 0
+```
 
-Strum gate: IMU S packets only pluck if within 2 s of last chord
+> **Strum gate:** IMU packets only trigger plucks within **2 seconds** of the last chord selection. This prevents stray strums from playing the wrong chord or firing after a long pause.
 
-Chord map (low E..high E, -1=mute, 0=open):
-1 C: {-1,3,2,0,1,0}
-2 Dm: {-1,-1,0,2,3,1}
-3 Em: {0,2,2,0,0,0}
-4 F: {1,3,3,2,1,1}
-5 G: {3,2,0,0,0,3}
-6 Am: {-1,0,2,2,1,0}
-7 Bm: {-1,2,4,4,3,2}
-8 C: {-1,3,2,0,1,0}
-9 D: {-1,-1,0,2,3,2}
-0 E: {0,2,2,1,0,0}
+---
 
-🛰️ Packet Protocol
+## 📡 RF→USB Gateway Sketch
 
-All packets are 3 bytes:
-
-Keypad: {'K', keyChar, seq}
-
-Example: 'K', '5', 12
-
-IMU: {'S', velInt8, seq}
-
-velInt8 ∈ [-100,100] (sign = strum direction, magnitude = velocity)
-
-Each transmitter maintains its own 8-bit seq; the receiver drops dupes.
-
-⚙️ Build Details
-Arduino IDE settings
-
-Boards:
-
-Arduino Nano (328P, Old Bootloader if needed)
-
-ESP32 Dev Module (if using legacy engine)
-
-Baud: 115200 (all sketches)
-
-Libraries:
-
-RF24 (by TMRh20)
-
-Keypad (by Mark Stanley & Alexander Brevig)
-
-Python engine
-
-sounddevice (PortAudio), numpy, pyserial
-
-Defaults: SR=22050, BLOCK=256, latency='low'
-
-To choose audio device:
-
-import sounddevice as sd
-print(sd.query_devices())
-
-
-Then set DEVICE = index in the script.
-
-🔧 RF→USB Gateway (sketch)
-
-This tiny gateway opens both pipes and forwards raw packets to USB serial (no parsing):
-
-// firmware/rf_gateway/RF_Gateway.ino
+```cpp
 #include <SPI.h>
 #include <RF24.h>
-#define CE 9
+
+#define CE  9
 #define CSN 10
+
 RF24 radio(CE, CSN);
-const byte ADDR_KEY[6]="KEY01", ADDR_IMU[6]="IMU01";
-void setup(){
+
+const byte ADDR_KEY[6] = "KEY01";
+const byte ADDR_IMU[6] = "IMU01";
+
+void setup() {
   Serial.begin(115200);
-  if(!radio.begin()){ Serial.println("RF begin FAIL"); while(1){} }
+  if (!radio.begin()) {
+    Serial.println("RF begin FAIL");
+    while (1) {}
+  }
   radio.setAddressWidth(5);
   radio.setChannel(76);
   radio.setDataRate(RF24_1MBPS);
@@ -240,73 +270,142 @@ void setup(){
   radio.startListening();
   Serial.println("RF GATEWAY listening: pipe0=KEY01 pipe1=IMU01 ch76 1Mbps");
 }
-void loop(){
+
+void loop() {
   uint8_t pipe;
-  while (radio.available(&pipe)){
-    uint8_t p[3]; radio.read(p,3);
-    // forward exactly 3 bytes to host; prefix pipe id for logging if you want
-    Serial.write(p,3);
+  while (radio.available(&pipe)) {
+    uint8_t p[3];
+    radio.read(p, 3);
+    Serial.write(p, 3);   // Forward raw 3 bytes to Python engine
   }
 }
+```
 
+> **ESP32 gateway note:** If CE/CSN on D4/D5 cause upload issues, move to CE=D27, CSN=D14.
 
-Use any AVR/ESP32 for the gateway. If using ESP32 and upload issues occur with CE/CSN on D4/D5, move to D27/D14.
+---
 
-🧪 Smoke Tests (optional but handy)
+## 🧪 Smoke Tests
 
-If radios act up, first verify the link with a bare counter TX/RX pair:
+Before running the full system, verify the radio link with a bare counter test:
 
-firmware/test_tx_counter/ (Nano) → sends uint32_t counter
+- `firmware/test_tx_counter/` — Nano TX that sends a `uint32_t` counter
+- `firmware/test_rx_counter/` — Nano or ESP32 RX that prints received counter
 
-firmware/test_rx_counter/ (ESP32 or Nano) → prints received counter
+Both nodes must be on **channel 76, 1 Mbps, address `"TST01"`**. If this fails, fix wiring and power before moving on.
 
-Both should be ch76, 1 Mbps, ADDR "TST01". If this fails, fix wiring/power before trying VectorStrum.
+---
 
-🩺 Troubleshooting
+## 🩺 Troubleshooting
 
-Keypad prints heartbeat only → 3rd column must be A0 (not D10). D10 must be OUTPUT/HIGH.
+<details>
+<summary><strong>🔴 Keypad prints heartbeat but no key events</strong></summary>
 
-TX shows FAIL (no ACK):
+Column 3 of the keypad **must** connect to `A0`, not `D10`. Pin `D10` must be set `OUTPUT` and held `HIGH` at all times to maintain SPI master mode on the AVR.
+</details>
 
-Common GND everywhere; radio 3.3 V only; add 10–47 µF cap at module
+<details>
+<summary><strong>🔴 TX shows FAIL — no ACK from gateway</strong></summary>
 
-Check CE/CSN pins & addresses/pipes; all radios on ch76, 1 Mbps
+- Ensure all nodes share a **common GND**
+- Radio VCC must be **3.3 V only** — never 5 V
+- Add a 10–47 µF capacitor directly across each radio's VCC and GND pins
+- Double-check CE/CSN wiring and that all radios use the same channel (76) and data rate (1 Mbps)
+- Try `RF24_PA_MIN` for bench testing at close range
+</details>
 
-Try closer range; set RF24_PA_MIN for bench testing
+<details>
+<summary><strong>🔴 ESP32 won't enter upload mode</strong></summary>
 
-ESP32 won’t flash (boot mode error):
+Radios on boot-strap pins block flashing. Either unplug the radio during upload or move to CE=D27, CSN=D14. To force bootloader: hold **BOOT**, tap **EN**, release **BOOT** once upload starts.
+</details>
 
-Unplug radio (CE/CSN on strap pins) or use CE=D27, CSN=D14 and rewire
+<details>
+<summary><strong>🔴 Python audio is clicky or has high latency</strong></summary>
 
-Hold BOOT, tap EN, keep holding BOOT until upload starts
+- Try `BLOCK=512` (more stable) or `BLOCK=128` (lower latency)
+- Reduce `MIX_GAIN` (e.g., `0.18`) to prevent clipping
+- On Windows, prefer **ASIO** or **WASAPI** audio backends
+- List available devices: `python -c "import sounddevice as sd; print(sd.query_devices())"`
+</details>
 
-Python audio clicks/latency:
+<details>
+<summary><strong>🔴 IMU too sensitive / not sensitive enough</strong></summary>
 
-Try BLOCK=512 or BLOCK=128
+Tune these constants in the IMU firmware:
+- `THRESH_G` — acceleration threshold to trigger a strum (try `1.4`–`2.2`)
+- `REFRACT_MS` — cooldown after a strum to prevent double-plucks (try `80`–`150`)
+</details>
 
-Lower MIX_GAIN (e.g., 0.18)
+---
 
-Pick the right device (ASIO/WASAPI on Windows)
+## ⚙️ Build Configuration
 
-IMU too sensitive / not sensitive:
+### Arduino IDE Settings
 
-Tweak THRESH_G (1.4…2.2) and REFRACT_MS (80…150)
+| Setting | Value |
+|---|---|
+| Board (keypad/IMU) | Arduino Nano (ATmega328P, Old Bootloader) |
+| Board (gateway/legacy) | ESP32 Dev Module |
+| Baud rate | 115200 (all sketches) |
+| Required libraries | RF24 (TMRh20), Keypad (Mark Stanley & Alexander Brevig) |
 
+### Python Engine Defaults
 
+| Parameter | Default |
+|---|---|
+| Sample rate | 22050 Hz |
+| Block size | 256 |
+| Latency | `'low'` |
+| Mix gain | `0.20` |
 
-MIT (or your preferred license—update this section accordingly).
+---
 
-🙌 Credits
-Md Nazmun Nur
+## 📁 Repository Structure
 
-RF24 by TMRh20
+```
+Vectorstrum/
+├── chord.ino               # Keypad chord selection + nRF24 TX (Nano #1)
+├── strum.ino               # IMU strum detection + nRF24 TX (Nano #2)
+├── soundengine.ino         # ESP32 legacy sound engine (I²S + MAX98357A)
+├── gyt.py                  # Python Karplus–Strong sound engine
+├── pinout.html             # Visual wiring reference
+├── vectorstrum workflow.jpg # System architecture diagram
+└── COLOURBOX54744368.png   # Project image asset
+```
 
-Keypad lib by Mark Stanley & Alexander Brevig
+---
 
-Inspiration: classic Karplus–Strong plucked-string synthesis
+## 🛣️ Roadmap
 
+- [ ] On-board OLED displaying current chord name and strum velocity
+- [ ] Web UI for live threshold tuning and custom chord mapping
+- [ ] MIDI output mode (play DAWs and virtual instruments)
+- [ ] Battery-powered enclosure with 3D-printable case
+- [ ] Left-hand / right-hand mode toggle
 
+---
 
-On-board OLED chord/velocity HUD
+## 📜 License
 
-Web UI to configure thresholds and chord sets
+Distributed under the **Apache License 2.0**. See [`LICENSE`](LICENSE) for full terms.
+
+---
+
+## 🙌 Credits
+
+**Built by [Md Nazmun Nur](https://github.com/n00rtahsin)**
+
+- [RF24 library](https://github.com/nRF24/RF24) by TMRh20 & contributors
+- [Keypad library](https://playground.arduino.cc/Code/Keypad/) by Mark Stanley & Alexander Brevig
+- Karplus–Strong plucked-string synthesis — *Karplus & Strong, 1983*
+
+---
+
+<div align="center">
+
+*Pick up the air. Play the music.*
+
+**⭐ Star this repo if it made you smile (or strum)**
+
+</div>
